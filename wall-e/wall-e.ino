@@ -627,7 +627,13 @@ void loop() {
   if (sliderId != -1) {
     int  sliderVal = phone.getSliderVal();
     Serial.print(sliderId); Serial.print(": ");
-    Serial.println(sliderVal);
+    Serial.print(sliderVal);
+    int mapped = map(sliderVal, 0, 200, 10, 600);  // TODO: NOT SURE WHAT THE MAX VALUE HERE SHOULD BE THO 600 APPEARS TO MOVE THEM 180
+    Serial.print(" ");
+    Serial.println(mapped);
+
+    pwm.setPWM(sliderId, 0, mapped );
+
   }
 
   // Throttle and steering values go from 0 to 99.
