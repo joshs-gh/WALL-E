@@ -21,7 +21,6 @@
       https://wired.chillibasket.com/3d-printed-wall-e/
 */
 
-
 #include "Arduino.h"
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
