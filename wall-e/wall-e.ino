@@ -21,6 +21,8 @@
       https://wired.chillibasket.com/3d-printed-wall-e/
 */
 
+
+#include "Arduino.h"
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 #include <SoftwareSerial.h>
@@ -36,61 +38,18 @@
 #define BRAKE_R_PIN  8
 #define SERVO_ENABLE_PIN 10          // Servo shield output enable pin
 
-const int BLUETOOTH_TX = 6;          // Pins 9 & 13 didn't work for some reason.  6 & 7 do tho motors aren't turning.
+const int BLUETOOTH_TX = 6;          // Pins 9 & 13 didn't work for some reason.
 const int BLUETOOTH_RX = 7;
 int LEFTSPEED = 200;            // These are for calibration - try to make him go straight
 int RIGHTSPEED = 200;
+const int VOICE_PIN = 2;
 
 int prevThrottle = 49;
 int prevSteering = 49;
 int throttle, steering;
 
-SoftwareSerial bluetooth(BLUETOOTH_TX, BLUETOOTH_RX);
+SoftwareSerial bluetooth(BLUETOOTH_TX, BLUETOOTH_RX);  // NOTE THIS MEANS WHAT IS SAYS ON THE BT MODULE - THE API TAKES THE OPPOSITE - RX, TX.
 ArduinoBlue phone(bluetooth); // pass reference of bluetooth object to ArduinoBlue constructor
-
-
-/**
-   Battery level detection
-
-     .------R1-----.-------R2------.     | The diagram to the left shows the  |
-     |             |               |     | potential divider circuit used by  |
-   V_Raw     Analogue pin A2      GND    | the battery level detection system |
-
-   @note The scaling factor is calculated according to ratio of the two resistors:
-         DIVIDER_SCALING_FACTOR = R2 / (R1 + R2)
-         For example: 47000 / (100000 + 47000) = 0.3197
-
-   To enable battery level detection, uncomment the next line:
-*/
-//#define BAT_L
-#ifdef BAT_L
-#define BATTERY_LEVEL_PIN A2
-#define BATTERY_MAX_VOLTAGE 12.6
-#define BATTERY_MIN_VOLTAGE 10.2
-#define DIVIDER_SCALING_FACTOR 0.3197
-
-
-/**
-   OLED Battery Level Display
-
-   Displays the battery level on an oLed display. Supports a 1.3 inch oLed display using I2C.
-   The constructor is set to a SH1106 1.3 inch display. Change the constructor if you want to use a different display.
-
-   @note Requires Battery level detection to be enabled above
-   @note You may get a "Low memory available" warning when compiling for Arduino UNO boards (79% memory usage).
-         It did work in my case, so you should be able to ignore this message.
-
-   To enable the oLED display, uncomment the next line:
-*/
-//#define OLED
-#ifdef OLED
-
-#include <U8g2lib.h>
-U8G2_SH1106_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, 10);
-
-#endif /* OLED */
-#endif /* BAT_L */
-
 
 /// Define other constants
 // -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -100,8 +59,6 @@ U8G2_SH1106_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, 10);
 #define STATUS_CHECK_TIME 10000   // Time in milliseconds of how often to check robot status (eg. battery level)
 #define CONTROLLER_THRESHOLD 1    // The minimum error which the dynamics controller tries to achieve
 #define MAX_SERIAL_LENGTH 5       // Maximum number of characters that can be received
-
-
 
 /// Instantiate Objects
 // -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -181,6 +138,10 @@ float accell[] = { 350, 300, 480, 1800, 1800, 500, 500, 800, 800}; // Servo acce
 
 void setup() {
 
+  // Wall-e's Voice
+  pinMode(VOICE_PIN, OUTPUT);
+  digitalWrite(VOICE_PIN, HIGH);
+
   // Output Enable (EO) pin for the servo motors
   pinMode(SERVO_ENABLE_PIN, OUTPUT);
   digitalWrite(SERVO_ENABLE_PIN, HIGH);
@@ -197,6 +158,7 @@ void setup() {
   // Initialize serial communication for debugging
   Serial.begin(115200);
   bluetooth.begin(9600);    // APPARENTLY THIS HAS TO BE 9600 - DOESN'T WORK AT 115200
+
   Serial.println(F("--- Wall-E Control Sketch ---"));
 
   randomSeed(analogRead(0));
@@ -208,7 +170,7 @@ void setup() {
   Serial.println(F("Starting up the servo motors"));
   digitalWrite(SERVO_ENABLE_PIN, LOW);
   playAnimation(0);
-  softStart(queue.pop(), 3500);
+  //softStart(queue.pop(), 3500);
 
   // If an oLED is present, start it up
 #ifdef OLED
@@ -564,8 +526,8 @@ void manageServos(float dt) {
 /// @param  targetPos  The target position of the servos after startup
 /// @param  timeMs     Time in milliseconds in which soft start should complete
 // -------------------------------------------------------------------
-
-void softStart(animation_t targetPos, int timeMs) {
+/*
+  void softStart(animation_t targetPos, int timeMs) {
 
   for (int i = 0; i < NUMBER_OF_SERVOS; i++) {
     if (targetPos.servos[i] >= 0) {
@@ -583,15 +545,15 @@ void softStart(animation_t targetPos, int timeMs) {
       setpos[i] = curpos[i];
     }
   }
-}
+  }
 
 
-// -------------------------------------------------------------------
-/// Battery level detection
-// -------------------------------------------------------------------
+  // -------------------------------------------------------------------
+  /// Battery level detection
+  // -------------------------------------------------------------------
 
-#ifdef BAT_L
-void checkBatteryLevel() {
+  #ifdef BAT_L
+  void checkBatteryLevel() {
 
   // Read the analogue pin and calculate battery voltage
   float voltage = analogRead(BATTERY_LEVEL_PIN) * 5 / 1024.0;
@@ -599,16 +561,16 @@ void checkBatteryLevel() {
   int percentage = int(100 * (voltage - BATTERY_MIN_VOLTAGE) / float(BATTERY_MAX_VOLTAGE - BATTERY_MIN_VOLTAGE));
 
   // Update the oLed Display if installed
-#ifdef OLED
+  #ifdef OLED
   displayLevel(percentage);
-#endif
+  #endif
 
   // Send the percentage via serial
   Serial.print(F("Battery_")); Serial.println(percentage);
-}
-#endif
+  }
+  #endif
 
-
+*/
 
 // -------------------------------------------------------------------
 /// Main program loop
@@ -618,7 +580,10 @@ void loop() {
 
   int i = phone.getButton();
   if (i != -1) {
-    Serial.println(i);
+    // Make Wall-E say "WAAAAHHHLLEEEE"
+    digitalWrite(VOICE_PIN, LOW);
+    delay(50);
+    digitalWrite(VOICE_PIN, HIGH);
   }
 
   // ID of the slider moved.
