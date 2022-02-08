@@ -130,6 +130,24 @@ float maxvel[] = { 500, 400, 500, 2400, 2400, 600, 600, 255, 255}; // Max Servo 
 float accell[] = { 350, 300, 480, 1800, 1800, 500, 500, 800, 800}; // Servo acceleration (units/sec^2)
 
 
+// Voltage Tester
+
+// Define analog input
+#define ANALOG_IN_PIN A0
+ 
+// Floats for ADC voltage & Input voltage
+float adc_voltage = 0.0;
+float in_voltage = 0.0;
+ 
+// Floats for resistor values in divider (in ohms)
+float R1 = 30000.0;
+float R2 = 7500.0; 
+ 
+// Float for Reference Voltage
+float ref_voltage = 5.0;
+ 
+// Integer for ADC value
+int adc_value = 0;
 
 // -------------------------------------------------------------------
 /// Initial setup
@@ -577,6 +595,21 @@ void manageServos(float dt) {
 
 void loop() {
 
+  // Read the Analog Input
+   adc_value = analogRead(ANALOG_IN_PIN);
+   
+   // Determine voltage at ADC input
+   adc_voltage  = (adc_value * ref_voltage) / 1024.0; 
+   
+   // Calculate voltage at divider input
+   in_voltage = adc_voltage / (R2/(R1+R2)); 
+   
+   // Print results to Serial Monitor to 2 decimal places
+  Serial.print("Input Voltage = ");
+  Serial.println(in_voltage, 2);
+  delay(1000);
+
+  
   int i = phone.getButton();
   if (i != -1) {
     // Make Wall-E say "WAAAAHHHLLEEEE"
