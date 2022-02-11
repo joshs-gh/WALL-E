@@ -63,7 +63,7 @@ MotorController motorL(DIRECTION_L_PIN, PWM_SPEED_L_PIN, BRAKE_L_PIN, false);
 MotorController motorR(DIRECTION_R_PIN, PWM_SPEED_R_PIN, BRAKE_R_PIN, false);
 
 
-// Voltage Detection: 
+// Voltage Detection:
 
 // Floats for ADC voltage & Input voltage
 float adc_voltage = 0.0;
@@ -161,15 +161,21 @@ void loop() {
   int  sliderId = phone.getSliderId();
   // Slider value goes from 0 to 200.
   if (sliderId != -1) {
+    int mapped = 0;
     int  sliderVal = phone.getSliderVal();
-    Serial.print(sliderId); Serial.print(": ");
-    Serial.print(sliderVal);
-    int mapped = map(sliderVal, 0, 200, 10, 600);  // TODO: NOT SURE WHAT THE MAX VALUE HERE SHOULD BE THO 600 APPEARS TO MOVE THEM 180
-    Serial.print(" ");
-    Serial.println(mapped);
-
+    // Serial.print(sliderId); Serial.print(": "); Serial.print(sliderVal);
+    switch (sliderId) {
+      case 0:
+        // Right Eye
+        mapped = map(sliderVal, 0, 200, 300, 10);  // TODO: NOT SURE WHAT THE MAX VALUE HERE SHOULD BE THO 600 APPEARS TO MOVE THEM 180
+        break;
+      case 1:
+        // Left Eye
+        mapped = map(sliderVal, 0, 200, 10, 300);
+        break;
+    }
+    
     pwm.setPWM(sliderId, 0, mapped);
-
   }
 
   // Throttle and steering values go from 0 to 99.
