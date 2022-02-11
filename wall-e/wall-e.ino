@@ -28,6 +28,7 @@
 #include <ArduinoBlue.h>
 #include "Queue.hpp"
 #include "MotorController.hpp"
+#include "DFRobotDFPlayerMini.h"
 
 #define DIRECTION_L_PIN 12           // Motor direction pins
 #define DIRECTION_R_PIN 13
@@ -41,7 +42,6 @@ const int BLUETOOTH_TX = 6;          // Pins 9 & 13 didn't work for some reason.
 const int BLUETOOTH_RX = 7;
 int LEFTSPEED = 200;            // These are for calibration - try to make him go straight
 int RIGHTSPEED = 200;
-const int VOICE_PIN = 2;
 
 int prevThrottle = 49;
 int prevSteering = 49;
@@ -49,6 +49,8 @@ int throttle, steering;
 
 SoftwareSerial bluetooth(BLUETOOTH_TX, BLUETOOTH_RX);  // NOTE THIS MEANS WHAT IS SAYS ON THE BT MODULE - THE API TAKES THE OPPOSITE - RX, TX.
 ArduinoBlue phone(bluetooth); // pass reference of bluetooth object to ArduinoBlue constructor
+SoftwareSerial mp3serial(4, 5); // RX, TX
+DFRobotDFPlayerMini myDFPlayer;
 
 /// Define other constants
 // -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -134,18 +136,18 @@ float accell[] = { 350, 300, 480, 1800, 1800, 500, 500, 800, 800}; // Servo acce
 
 // Define analog input
 #define ANALOG_IN_PIN A0
- 
+
 // Floats for ADC voltage & Input voltage
 float adc_voltage = 0.0;
 float in_voltage = 0.0;
- 
+
 // Floats for resistor values in divider (in ohms)
 float R1 = 30000.0;
-float R2 = 7500.0; 
- 
+float R2 = 7500.0;
+
 // Float for Reference Voltage
 float ref_voltage = 5.0;
- 
+
 // Integer for ADC value
 int adc_value = 0;
 
@@ -154,10 +156,6 @@ int adc_value = 0;
 // -------------------------------------------------------------------
 
 void setup() {
-
-  // Wall-e's Voice
-  pinMode(VOICE_PIN, OUTPUT);
-  digitalWrite(VOICE_PIN, HIGH);
 
   // Output Enable (EO) pin for the servo motors
   pinMode(SERVO_ENABLE_PIN, OUTPUT);
@@ -175,6 +173,9 @@ void setup() {
   // Initialize serial communication for debugging
   Serial.begin(115200);
   bluetooth.begin(9600);    // APPARENTLY THIS HAS TO BE 9600 - DOESN'T WORK AT 115200
+  mp3serial.begin(9600);
+  myDFPlayer.begin(mp3serial);
+  bluetooth.listen();
 
   Serial.println(F("--- Wall-E Control Sketch ---"));
 
@@ -207,8 +208,8 @@ void setup() {
 /// This function reads incoming characters in the serial port
 /// and inserts them into a buffer to be processed later.
 // -------------------------------------------------------------------
-
-void readSerial() {
+/*
+  void readSerial() {
 
   // Read incoming byte
   char inchar = Serial.read();
@@ -236,18 +237,18 @@ void readSerial() {
       serialLength = 0;
     }
   }
-}
+  }
 
 
 
-// -------------------------------------------------------------------
-/// Evaluate input from serial port
-///
-/// Parse the received serial message which is stored in
-/// the "serialBuffer" filled by the "readSerial()" function
-// -------------------------------------------------------------------
+  // -------------------------------------------------------------------
+  /// Evaluate input from serial port
+  ///
+  /// Parse the received serial message which is stored in
+  /// the "serialBuffer" filled by the "readSerial()" function
+  // -------------------------------------------------------------------
 
-void evaluateSerial() {
+  void evaluateSerial() {
 
   // Evaluate integer number in the serial buffer
   int number = atoi(serialBuffer);
@@ -386,15 +387,15 @@ void evaluateSerial() {
     setpos[5] = preset[5][1];
     setpos[6] = preset[6][0];
   }
-}
+  }
 
 
 
-// -------------------------------------------------------------------
-/// Sequence and generate animations
-// -------------------------------------------------------------------
+  // -------------------------------------------------------------------
+  /// Sequence and generate animations
+  // -------------------------------------------------------------------
 
-void manageAnimations() {
+  void manageAnimations() {
 
   // If we are running an animation
   // -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -461,9 +462,9 @@ void manageAnimations() {
     animeTimer = millis() + random(500, 3000);
 
   }
-}
+  }
 
-
+*/
 
 // -------------------------------------------------------------------
 /// Manage the movement of the servo motors
@@ -589,33 +590,44 @@ void manageServos(float dt) {
 
 */
 
+
 // -------------------------------------------------------------------
 /// Main program loop
 // -------------------------------------------------------------------
 
 void loop() {
 
-  // Read the Analog Input
-   adc_value = analogRead(ANALOG_IN_PIN);
-   
-   // Determine voltage at ADC input
-   adc_voltage  = (adc_value * ref_voltage) / 1024.0; 
-   
-   // Calculate voltage at divider input
-   in_voltage = adc_voltage / (R2/(R1+R2)); 
-   
-   // Print results to Serial Monitor to 2 decimal places
-  Serial.print("Input Voltage = ");
-  Serial.println(in_voltage, 2);
-  delay(1000);
+  /*
+    // Read the Analog Input
+    adc_value = analogRead(ANALOG_IN_PIN);
 
-  
+    // Determine voltage at ADC input
+    adc_voltage  = (adc_value * ref_voltage) / 1024.0;
+
+    // Calculate voltage at divider input
+    in_voltage = adc_voltage / (R2 / (R1 + R2));
+
+    // Print results to Serial Monitor to 2 decimal places
+    Serial.print("Input Voltage = ");
+    Serial.println(in_voltage, 2);
+  */
+
   int i = phone.getButton();
   if (i != -1) {
-    // Make Wall-E say "WAAAAHHHLLEEEE"
-    digitalWrite(VOICE_PIN, LOW);
-    delay(50);
-    digitalWrite(VOICE_PIN, HIGH);
+    Serial.print("Got a button: ");
+    Serial.println(i);
+    mp3serial.listen();
+    switch (i) {
+      case 3: 
+        myDFPlayer.play(1);
+        delay(4000);
+        break;
+      case 4:
+       myDFPlayer.play(5);
+        delay(2000);
+        break;
+    }
+    bluetooth.listen();
   }
 
   // ID of the slider moved.
@@ -638,49 +650,50 @@ void loop() {
   throttle = phone.getThrottle();
   steering = phone.getSteering();
 
-  // Display throttle and steering data if steering or throttle value is changed
-  if (prevThrottle != throttle || prevSteering != steering) {
-    Serial.print("Throttle: "); Serial.print(throttle); Serial.print("\tSteering: "); Serial.println(steering);
-    prevThrottle = throttle;
-    prevSteering = steering;
-    if (throttle == 49 && steering == 49) {
-      Serial.println("STOPPING");
-      motorL.setSpeed(0);
-      motorR.setSpeed(0);
-      delay(500);
-    }
-    else {
-      if (throttle > 49) {
-        LEFTSPEED = abs(LEFTSPEED);
-        RIGHTSPEED = abs(RIGHTSPEED);
+  
+    // Display throttle and steering data if steering or throttle value is changed
+    if (prevThrottle != throttle || prevSteering != steering) {
+      Serial.print("Throttle: "); Serial.print(throttle); Serial.print("\tSteering: "); Serial.println(steering);
+      prevThrottle = throttle;
+      prevSteering = steering;
+      if (throttle == 49 && steering == 49) {
+        Serial.println("STOPPING");
+        motorL.setSpeed(0);
+        motorR.setSpeed(0);
+        delay(500);
       }
       else {
-        LEFTSPEED = abs(LEFTSPEED) * -1;
-        RIGHTSPEED = abs(RIGHTSPEED) * -1;
+        if (throttle > 49) {
+          LEFTSPEED = abs(LEFTSPEED);
+          RIGHTSPEED = abs(RIGHTSPEED);
+        }
+        else {
+          LEFTSPEED = abs(LEFTSPEED) * -1;
+          RIGHTSPEED = abs(RIGHTSPEED) * -1;
+        }
+        int speedAdj = map(steering, 0, 99, -40, 40);
+        int lSpeed = LEFTSPEED + speedAdj;
+        int rSpeed = RIGHTSPEED - speedAdj;
+        Serial.print("L SPEED: "); Serial.println(lSpeed);
+        Serial.print("R SPEED: "); Serial.println(rSpeed);
+        motorL.setSpeed(LEFTSPEED + speedAdj);
+        motorR.setSpeed(RIGHTSPEED - speedAdj);
       }
-      int speedAdj = map(steering, 0, 99, -40, 40);
-      int lSpeed = LEFTSPEED + speedAdj;
-      int rSpeed = RIGHTSPEED - speedAdj;
-      Serial.print("L SPEED: "); Serial.println(lSpeed);
-      Serial.print("R SPEED: "); Serial.println(rSpeed);
-      motorL.setSpeed(LEFTSPEED + speedAdj);
-      motorR.setSpeed(RIGHTSPEED - speedAdj);
     }
-  }
 
-
+  /*
   // Read any new serial messages
   // -- -- -- -- -- -- -- -- -- -- -- -- -- --
   if (Serial.available() > 0) {
-    readSerial();
+    //readSerial();
   }
 
 
   // Load or generate new animations
   // -- -- -- -- -- -- -- -- -- -- -- -- -- --
-  manageAnimations();
-
-
+  // manageAnimations();
+  */
+  
   // Move Servos and wheels at regular time intervals
   // -- -- -- -- -- -- -- -- -- -- -- -- -- --
   if (millis() - updateTimer >= SERVO_UPDATE_TIME) {
