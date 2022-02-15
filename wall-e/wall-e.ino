@@ -30,6 +30,7 @@
 #include "DFRobotDFPlayerMini.h"
 
 #define ANALOG_IN_PIN A0
+#define MAXSONAR_PIN A2
 #define PWM_SPEED_L_PIN  3           // Motor PWM pins
 #define MP3_TX_PIN 4                // This means the pins as labeled on the board: https://wiki.dfrobot.com/DFPlayer_Mini_SKU_DFR0299#target_3 
 #define MP3_RX_PIN 5
@@ -101,44 +102,44 @@ void setup() {
   // Initialize serial communication for debugging
   Serial.begin(115200);
   bluetooth.begin(9600);    // APPARENTLY THIS HAS TO BE 9600 - DOESN'T WORK AT 115200
-  mp3serial.begin(9600);
-  myDFPlayer.begin(mp3serial);
+  // mp3serial.begin(9600);
+  // myDFPlayer.begin(mp3serial);
   bluetooth.listen();
 
-  Serial.println(F("--- Wall-E Control Sketch ---"));
-
   randomSeed(analogRead(0));
-
-  // Soft start the servo motors
-  Serial.println(F("Starting up the servo motors"));
+  
   digitalWrite(SERVO_ENABLE_PIN, LOW);
 
   Serial.println(F("Sartup complete; entering main loop"));
 }
 
 
-
-// -------------------------------------------------------------------
-/// Main program loop
-// -------------------------------------------------------------------
-
 void loop() {
 
-  /*
-    // Read the Analog Input
-    adc_value = analogRead(ANALOG_IN_PIN);
+  // getVoltage();
 
-    // Determine voltage at ADC input
-    adc_voltage  = (adc_value * ref_voltage) / 1024.0;
+  // getButtons();
+  getSliders();
+  getMovement();
+}
 
-    // Calculate voltage at divider input
-    in_voltage = adc_voltage / (R2 / (R1 + R2));
 
-    // Print results to Serial Monitor to 2 decimal places
-    Serial.print("Input Voltage = ");
-    Serial.println(in_voltage, 2);
-  */
+void getVoltage() {
+  // Read the Analog Input
+  adc_value = analogRead(ANALOG_IN_PIN);
 
+  // Determine voltage at ADC input
+  adc_voltage  = (adc_value * ref_voltage) / 1024.0;
+
+  // Calculate voltage at divider input
+  in_voltage = adc_voltage / (R2 / (R1 + R2));
+
+  // Print results to Serial Monitor to 2 decimal places
+  Serial.print("Input Voltage = ");
+  Serial.println(in_voltage, 2);
+}
+
+void getButtons() {
   int i = phone.getButton();
   if (i != -1) {
     Serial.print("Got a button: ");
@@ -156,7 +157,9 @@ void loop() {
     }
     bluetooth.listen();
   }
+}
 
+void getSliders() {
   // ID of the slider moved.
   int  sliderId = phone.getSliderId();
   // Slider value goes from 0 to 200.
@@ -174,15 +177,16 @@ void loop() {
         mapped = map(sliderVal, 0, 200, 10, 300);
         break;
     }
-    
     pwm.setPWM(sliderId, 0, mapped);
   }
+}
 
+
+void getMovement() {
   // Throttle and steering values go from 0 to 99.
   // When throttle and steering values are at 99/2 = 49, the joystick is at center.
   throttle = phone.getThrottle();
   steering = phone.getSteering();
-
 
   // Display throttle and steering data if steering or throttle value is changed
   if (prevThrottle != throttle || prevSteering != steering) {
