@@ -65,7 +65,6 @@ MotorController motorR(DIRECTION_R_PIN, PWM_SPEED_R_PIN, BRAKE_R_PIN, false);
 
 
 // Voltage Detection:
-
 // Floats for ADC voltage & Input voltage
 float adc_voltage = 0.0;
 float in_voltage = 0.0;
@@ -107,7 +106,7 @@ void setup() {
   bluetooth.listen();
 
   randomSeed(analogRead(0));
-  
+
   digitalWrite(SERVO_ENABLE_PIN, LOW);
 
   Serial.println(F("Sartup complete; entering main loop"));
@@ -115,9 +114,7 @@ void setup() {
 
 
 void loop() {
-
   // getVoltage();
-
   // getButtons();
   getSliders();
   getMovement();
@@ -175,6 +172,26 @@ void getSliders() {
       case 1:
         // Left Eye
         mapped = map(sliderVal, 0, 200, 10, 300);
+        break;
+      case 2:
+        // Head
+        mapped = map(sliderVal, 0, 200, 650, 300);
+        break;
+      case 3:
+        // Neck Top
+        mapped = map(sliderVal, 0, 200, 400, 655);  // TODO: Right around 661 it starts turning 360 degrees - need to understand this API better. https://learn.adafruit.com/16-channel-pwm-servo-driver/library-reference#:~:text=pwm.setPWMFreq(1000)-,setPWM,-(channel%2C%20on%2C%20off
+        break;
+      case 4:
+        // Neck Bottom
+        mapped = map(sliderVal, 0, 200, 400, 655);
+        break;
+      case 5:
+        // Right Arm
+        mapped = map(sliderVal, 0, 200, 0, 400);
+        break;
+      case 6:
+        // Left Arm
+        mapped = map(sliderVal, 0, 200, 400, 0);
         break;
     }
     pwm.setPWM(sliderId, 0, mapped);
