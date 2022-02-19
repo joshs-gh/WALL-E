@@ -47,6 +47,7 @@
 
 int LEFTSPEED = 200;            // These are for calibration - try to make him go straight
 int RIGHTSPEED = 220;
+int DISTANCE_TO_TURN = 15;
 int prevThrottle = 49;
 int prevSteering = 49;
 int throttle, steering;
@@ -248,12 +249,12 @@ void autopilot() {
     delay(200);
     distance = analogRead(ANALOG_IN_PIN) / 2.0;
     Serial.println(distance);
-    if (distance > 10) {
-      motorL.setSpeed(LEFTSPEED);          
+    if (distance > DISTANCE_TO_TURN) {
+      motorL.setSpeed(LEFTSPEED);
       motorR.setSpeed(RIGHTSPEED);
     }
     else {
-      while (distance <= 10) {
+      while (distance <= DISTANCE_TO_TURN) {
         delay(200);
         motorL.setSpeed(LEFTSPEED);
         motorR.setSpeed(0);
