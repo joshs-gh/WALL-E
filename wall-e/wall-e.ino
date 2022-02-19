@@ -53,8 +53,8 @@ int throttle, steering;
 
 SoftwareSerial bluetooth(BLUETOOTH_TX, BLUETOOTH_RX);  // NOTE THIS MEANS WHAT IS SAYS ON THE BT MODULE - THE API TAKES THE OPPOSITE - RX, TX.
 ArduinoBlue phone(bluetooth); // pass reference of bluetooth object to ArduinoBlue constructor
-SoftwareSerial mp3serial(MP3_TX_PIN, MP3_RX_PIN); // RX, TX
-DFRobotDFPlayerMini myDFPlayer;
+// SoftwareSerial mp3serial(MP3_TX_PIN, MP3_RX_PIN); // RX, TX
+// DFRobotDFPlayerMini myDFPlayer;
 
 // Servo shield controller class - assumes default address 0x40
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
@@ -114,8 +114,9 @@ void setup() {
 
 
 void loop() {
+  // Serial.println(analogRead(A0) / 2.0);
   // getVoltage();
-  // getButtons();
+  getButtons();
   getSliders();
   getMovement();
 }
@@ -141,14 +142,17 @@ void getButtons() {
   if (i != -1) {
     Serial.print("Got a button: ");
     Serial.println(i);
-    mp3serial.listen();
+    // mp3serial.listen();
     switch (i) {
+      case 10:
+        autopilot();
+        break;
       case 3:
-        myDFPlayer.play(1);
+        // myDFPlayer.play(1);
         delay(4000);
         break;
       case 4:
-        myDFPlayer.play(5);
+        // myDFPlayer.play(5);
         delay(2000);
         break;
     }
@@ -163,7 +167,7 @@ void getSliders() {
   if (sliderId != -1) {
     int mapped = 0;
     int  sliderVal = phone.getSliderVal();
-    // Serial.print(sliderId); Serial.print(": "); Serial.print(sliderVal);
+    Serial.print(sliderId); Serial.print(": "); Serial.println(sliderVal);
     switch (sliderId) {
       case 0:
         // Right Eye
@@ -179,7 +183,7 @@ void getSliders() {
         break;
       case 3:
         // Neck Top
-        mapped = map(sliderVal, 0, 200, 400, 655);  // TODO: Right around 661 it starts turning 360 degrees - need to understand this API better. https://learn.adafruit.com/16-channel-pwm-servo-driver/library-reference#:~:text=pwm.setPWMFreq(1000)-,setPWM,-(channel%2C%20on%2C%20off
+        mapped = map(sliderVal, 0, 200, 150, 600);  // TODO: Right around 661 it starts turning 360 degrees - need to understand this API better. https://learn.adafruit.com/16-channel-pwm-servo-driver/library-reference#:~:text=pwm.setPWMFreq(1000)-,setPWM,-(channel%2C%20on%2C%20off
         break;
       case 4:
         // Neck Bottom
@@ -234,4 +238,36 @@ void getMovement() {
       motorR.setSpeed(RIGHTSPEED - speedAdj);
     }
   }
+}
+
+void autopilot() {
+  Serial.println("WE ARE IN AUTOPILOT");
+  float distance;
+  bool keepGoing = true;
+  while (keepGoing) {
+    delay(200);
+    distance = analogRead(ANALOG_IN_PIN) / 2.0;
+    Serial.println(distance);
+    if (distance > 1.50) {
+      motorL.setSpeed(LEFTSPEED);          // TODO: BUG!  The motor running is causing random values at A0. 
+      //motorR.setSpeed(RIGHTSPEED);
+    }
+    else {
+      while (distance <= 1.50) {
+        delay(200);
+        //motorL.setSpeed(LEFTSPEED);
+        motorR.setSpeed(0);
+        distance = analogRead(ANALOG_IN_PIN) / 2.0;
+        Serial.println(distance);
+        if (phone.getButton() != -1) {
+          motorL.setSpeed(0);
+          return;
+        }
+      }
+    }
+    if (phone.getButton() != -1) keepGoing = false;
+  }
+  motorL.setSpeed(0);
+  motorR.setSpeed(0);
+  Serial.println("EXITING AUTOPILOT");
 }
