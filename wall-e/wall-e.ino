@@ -222,21 +222,25 @@ void getMovement() {
       delay(500);
     }
     else {
+      int lSpeed;
+      int rSpeed;
+      int speedAdj = map(steering, 0, 99, -180, 180);
+
       if (throttle > 49) {
         LEFTSPEED = abs(LEFTSPEED);
         RIGHTSPEED = abs(RIGHTSPEED);
+        lSpeed = LEFTSPEED + speedAdj;
+        rSpeed = RIGHTSPEED - speedAdj;
       }
       else {
         LEFTSPEED = abs(LEFTSPEED) * -1;
         RIGHTSPEED = abs(RIGHTSPEED) * -1;
+        lSpeed = LEFTSPEED - speedAdj;
+        rSpeed = RIGHTSPEED + speedAdj;
       }
-      int speedAdj = map(steering, 0, 99, -40, 40);
-      int lSpeed = LEFTSPEED + speedAdj;
-      int rSpeed = RIGHTSPEED - speedAdj;
-      Serial.print("L SPEED: "); Serial.println(lSpeed);
-      Serial.print("R SPEED: "); Serial.println(rSpeed);
-      motorL.setSpeed(LEFTSPEED + speedAdj);
-      motorR.setSpeed(RIGHTSPEED - speedAdj);
+      // Serial.print("L SPEED: "); Serial.println(lSpeed);  Serial.print("R SPEED: "); Serial.println(rSpeed);
+      motorL.setSpeed(lSpeed);
+      motorR.setSpeed(rSpeed);
     }
   }
 }
