@@ -29,7 +29,7 @@
 #include "MotorController.hpp"
 #include "DFRobotDFPlayerMini.h"
 
-#define ANALOG_IN_PIN A0
+#define ANALOG_IN_PIN A2
 #define MAXSONAR_PIN A2
 #define PWM_SPEED_L_PIN  3           // Motor PWM pins
 #define MP3_TX_PIN 4                // This means the pins as labeled on the board: https://wiki.dfrobot.com/DFPlayer_Mini_SKU_DFR0299#target_3 
@@ -46,7 +46,7 @@
 #define NUMBER_OF_SERVOS 7
 
 int LEFTSPEED = 200;            // These are for calibration - try to make him go straight
-int RIGHTSPEED = 200;
+int RIGHTSPEED = 220;
 int prevThrottle = 49;
 int prevSteering = 49;
 int throttle, steering;
@@ -248,14 +248,14 @@ void autopilot() {
     delay(200);
     distance = analogRead(ANALOG_IN_PIN) / 2.0;
     Serial.println(distance);
-    if (distance > 1.50) {
-      motorL.setSpeed(LEFTSPEED);          // TODO: BUG!  The motor running is causing random values at A0. 
-      //motorR.setSpeed(RIGHTSPEED);
+    if (distance > 10) {
+      motorL.setSpeed(LEFTSPEED);          
+      motorR.setSpeed(RIGHTSPEED);
     }
     else {
-      while (distance <= 1.50) {
+      while (distance <= 10) {
         delay(200);
-        //motorL.setSpeed(LEFTSPEED);
+        motorL.setSpeed(LEFTSPEED);
         motorR.setSpeed(0);
         distance = analogRead(ANALOG_IN_PIN) / 2.0;
         Serial.println(distance);
