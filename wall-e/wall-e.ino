@@ -45,9 +45,9 @@
 
 #define NUMBER_OF_SERVOS 7
 
-int LEFTSPEED = 200;            // These are for calibration - try to make him go straight
-int RIGHTSPEED = 220;
-int DISTANCE_TO_TURN = 15;
+const int LEFTSPEED = 200;            // These are for calibration - try to make him go straight
+const int RIGHTSPEED = 220;
+const int DISTANCE_TO_TURN = 10;
 int prevThrottle = 49;
 int prevSteering = 49;
 int throttle, steering;
@@ -115,11 +115,11 @@ void setup() {
 
 
 void loop() {
-  // Serial.println(analogRead(A0) / 2.0);
   // getVoltage();
   getButtons();
   getSliders();
   getMovement();
+  // rebootAnimation();
 }
 
 
@@ -148,11 +148,14 @@ void getButtons() {
       case 10:
         autopilot();
         break;
-      case 3:
+      case 11:
+        rebootAnimation();
+        break;
+      case 13:
         // myDFPlayer.play(1);
         delay(4000);
         break;
-      case 4:
+      case 14:
         // myDFPlayer.play(5);
         delay(2000);
         break;
@@ -168,7 +171,7 @@ void getSliders() {
   if (sliderId != -1) {
     int mapped = 0;
     int  sliderVal = phone.getSliderVal();
-    Serial.print(sliderId); Serial.print(": "); Serial.println(sliderVal);
+    // Serial.print(sliderId); Serial.print(": "); Serial.println(sliderVal);
     switch (sliderId) {
       case 0:
         // Right Eye
@@ -199,6 +202,7 @@ void getSliders() {
         mapped = map(sliderVal, 0, 200, 400, 0);
         break;
     }
+    Serial.print(sliderId); Serial.print(": "); Serial.println(mapped);
     pwm.setPWM(sliderId, 0, mapped);
   }
 }
@@ -227,16 +231,12 @@ void getMovement() {
       int speedAdj = map(steering, 0, 99, -180, 180);
 
       if (throttle > 49) {
-        LEFTSPEED = abs(LEFTSPEED);
-        RIGHTSPEED = abs(RIGHTSPEED);
         lSpeed = LEFTSPEED + speedAdj;
         rSpeed = RIGHTSPEED - speedAdj;
       }
       else {
-        LEFTSPEED = abs(LEFTSPEED) * -1;
-        RIGHTSPEED = abs(RIGHTSPEED) * -1;
-        lSpeed = LEFTSPEED - speedAdj;
-        rSpeed = RIGHTSPEED + speedAdj;
+        lSpeed = (-1 * LEFTSPEED) - speedAdj;
+        rSpeed = (-1 * RIGHTSPEED) + speedAdj;
       }
       // Serial.print("L SPEED: "); Serial.println(lSpeed);  Serial.print("R SPEED: "); Serial.println(rSpeed);
       motorL.setSpeed(lSpeed);
@@ -256,6 +256,7 @@ void autopilot() {
     if (distance > DISTANCE_TO_TURN) {
       motorL.setSpeed(LEFTSPEED);
       motorR.setSpeed(RIGHTSPEED);
+      if (millis() % 40 == 0) lookAround();
     }
     else {
       while (distance <= DISTANCE_TO_TURN) {
@@ -266,6 +267,7 @@ void autopilot() {
         Serial.println(distance);
         if (phone.getButton() != -1) {
           motorL.setSpeed(0);
+          Serial.println("EXITING AUTOPILOT");
           return;
         }
       }
@@ -275,4 +277,72 @@ void autopilot() {
   motorL.setSpeed(0);
   motorR.setSpeed(0);
   Serial.println("EXITING AUTOPILOT");
+}
+
+void rebootAnimation() {
+  Serial.println("Reboot Animation");
+  // https://youtu.be/DLQDDhoCLMM?t=145  
+  // Eyes - L Down, R Down, L Up, R Up, Both Down, Both Up
+  // 0 == Right, up is 10, down 300
+  // 1 == Left, up is 300, down is 10
+  // Start Up
+  //pwm.setPWM(0, 0, 10);
+  //pwm.setPWM(1, 0, 300);
+  //delay(1000);
+  int range = 300;
+  // L Down
+  for (int i = range; i > 9; i--) {   // TODO: For some reason just calling the value I want isn't working. Try for loops. 
+    pwm.setPWM(1, 0, i);
+    delay(2);
+  }
+  delay(500);
+  // R Down
+  for (int i = 10; i < range; i++) {
+    pwm.setPWM(0, 0, i);
+    delay(2);
+  }
+  delay(500);
+  // L Up
+  for (int i = 10; i < range; i++) {
+    pwm.setPWM(1, 0, i);
+    delay(2);
+  }
+  delay(500);
+  // R Up
+  for (int i = range; i > 9; i--) {
+    pwm.setPWM(0, 0, i);
+    delay(2);
+  }
+  delay(500);
+  // Both Down
+   for (int i = 10; i < range; i++) {
+    pwm.setPWM(0, 0, i);
+    pwm.setPWM(1, 0, range-i);
+    delay(2);
+  }
+  // Both Up
+   for (int i = 10; i < range; i++) {
+    pwm.setPWM(0, 0, range - i);
+    pwm.setPWM(1, 0, i);
+    delay(2);
+  }
+  delay(1000);
+}
+
+
+void lookAround() {
+  motorL.setSpeed(0);
+  motorR.setSpeed(0);
+  if (random(0, 2) == 0) {  // NOTE: This gives random values of 0 and 1.  Never 2.
+    // Turn Head
+    pwm.setPWM(2, 0, 300);
+    delay(1000);
+    pwm.setPWM(2, 0, 650);
+    delay(1000);
+    pwm.setPWM(2, 0, 475);
+  }
+  else {
+    rebootAnimation();
+  }
+  delay(600);
 }
