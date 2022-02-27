@@ -151,6 +151,9 @@ void getButtons() {
       case 11:
         rebootAnimation();
         break;
+      case 12:
+        autoBoogie();
+        break;
       case 13:
         // myDFPlayer.play(1);
         delay(4000);
@@ -238,7 +241,7 @@ void getMovement() {
         lSpeed = (-1 * LEFTSPEED) - speedAdj;
         rSpeed = (-1 * RIGHTSPEED) + speedAdj;
       }
-      // Serial.print("L SPEED: "); Serial.println(lSpeed);  Serial.print("R SPEED: "); Serial.println(rSpeed);
+      Serial.print("L SPEED: "); Serial.println(lSpeed);  Serial.print("R SPEED: "); Serial.println(rSpeed);
       motorL.setSpeed(lSpeed);
       motorR.setSpeed(rSpeed);
     }
@@ -281,7 +284,7 @@ void autopilot() {
 
 void rebootAnimation() {
   Serial.println("Reboot Animation");
-  // https://youtu.be/DLQDDhoCLMM?t=145  
+  // https://youtu.be/DLQDDhoCLMM?t=145
   // Eyes - L Down, R Down, L Up, R Up, Both Down, Both Up
   // 0 == Right, up is 10, down 300
   // 1 == Left, up is 300, down is 10
@@ -291,7 +294,7 @@ void rebootAnimation() {
   //delay(1000);
   int range = 300;
   // L Down
-  for (int i = range; i > 9; i--) {   // TODO: For some reason just calling the value I want isn't working. Try for loops. 
+  for (int i = range; i > 9; i--) {   // TODO: For some reason just calling the value I want isn't working. Try for loops.
     pwm.setPWM(1, 0, i);
     delay(2);
   }
@@ -315,13 +318,13 @@ void rebootAnimation() {
   }
   delay(500);
   // Both Down
-   for (int i = 10; i < range; i++) {
+  for (int i = 10; i < range; i++) {
     pwm.setPWM(0, 0, i);
-    pwm.setPWM(1, 0, range-i);
+    pwm.setPWM(1, 0, range - i);
     delay(2);
   }
   // Both Up
-   for (int i = 10; i < range; i++) {
+  for (int i = 10; i < range; i++) {
     pwm.setPWM(0, 0, range - i);
     pwm.setPWM(1, 0, i);
     delay(2);
@@ -345,4 +348,47 @@ void lookAround() {
     rebootAnimation();
   }
   delay(600);
+}
+
+void autoBoogie() {
+  bool keepGoing = true;
+  while (keepGoing) {
+    motorL.setSpeed(LEFTSPEED);
+    motorR.setSpeed(0);
+    headBob();
+    pwm.setPWM(3, 0, 150);
+    armsintheAir();
+    pwm.setPWM(5, 0, 200);
+    pwm.setPWM(6, 0, 200);
+    motorL.setSpeed(0);
+    motorR.setSpeed(RIGHTSPEED);
+    headBob();
+    pwm.setPWM(3, 0, 150);
+    armsintheAir();
+    pwm.setPWM(5, 0, 200);
+    pwm.setPWM(6, 0, 200);
+    if (phone.getButton() != -1) keepGoing = false;
+  }
+  motorL.setSpeed(0);
+  motorR.setSpeed(0);
+}
+
+void headBob() {
+  for (int i = 1; i < 12; i++) {
+    pwm.setPWM(3, 0, 150);
+    delay(250);
+    pwm.setPWM(3, 0, 600);
+    delay(250);
+  }
+}
+
+void armsintheAir() {
+  for (int i = 1; i < 8; i++) {
+    pwm.setPWM(5, 0, 300);
+    pwm.setPWM(6, 0, 300);
+    delay(500);
+    pwm.setPWM(5, 0, 100);
+    pwm.setPWM(6, 0, 100);
+    delay(500);
+  }
 }
